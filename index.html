@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>Untitled</title>
+  
+
+</head>
+<body>
+<!-- partial:index.partial.html -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WHALERS - Tremors Experience</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: radial-gradient(circle, #0f0c29, #302b63, #24243e);
+            font-family: 'Orbitron', sans-serif;
+        }
+        @keyframes backgroundPulse {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+        @keyframes starfield {
+            from {transform: translateY(0);}
+            to {transform: translateY(-1000px);}
+        }
+        .starfield {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(white 1px, transparent 1px), radial-gradient(white 1px, transparent 1px);
+            background-size: 50px 50px;
+            background-position: 0 0, 25px 25px;
+            animation: starfield 60s linear infinite;
+            opacity: 0.3;
+        }
+        .title-text {
+            position: absolute;
+            top: 10vh;
+            width: 100%;
+            text-align: center;
+            font-size: 6rem;
+            color: transparent;
+            -webkit-text-stroke: 3px #00ffea;
+            text-shadow: 0 0 40px #00ffea;
+            z-index: 2;
+            transition: transform 0.5s ease;
+        }
+        .click-text {
+            position: absolute;
+            top: 18vh;
+            width: 100%;
+            text-align: center;
+            font-size: 1.8rem;
+            color: #ff0080;
+            text-shadow: 0 0 20px #ff0080;
+            animation: pulse 2s infinite;
+            z-index: 2;
+        }
+        @keyframes pulse {
+            0%, 100% {opacity: 1;}
+            50% {opacity: 0.5;}
+        }
+        .whale-container {
+            position: absolute;
+            top: 40vh;
+            left: 50%;
+            transform: translateX(-50%) scale(1);
+            z-index: 3;
+            transition: transform 0.5s ease;
+        }
+        .whale-img {
+            width: 40vw;
+            max-width: 500px;
+            cursor: pointer;
+            filter: drop-shadow(0px 0px 40px #ff0080);
+            transition: transform 0.5s ease;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            mix-blend-mode: screen;
+        }
+    </style>
+</head>
+<body>
+    <div class="starfield"></div>
+    <canvas id="eqCanvas"></canvas>
+    <div class="title-text" id="titleText">WHALERS</div>
+    <div class="click-text">✨ Click the Whale to Play "Tremors" ✨</div>
+    <div class="whale-container" id="whaleContainer">
+        <img class="whale-img" id="whaleImg" src="https://raw.githubusercontent.com/dmsatx357/whalers-test/main/whale%20outline.png" alt="Whale" onclick="triggerEffects()">
+    </div>
+    <audio id="audioPlayer" src="https://raw.githubusercontent.com/dmsatx357/whalers-test/main/TREMORS%20DIG%20MASTER%2001_06.mp3" crossorigin="anonymous"></audio>
+
+    <script>
+        const audioPlayer = document.getElementById('audioPlayer');
+        const whaleContainer = document.getElementById('whaleContainer');
+        const whaleImg = document.getElementById('whaleImg');
+        const titleText = document.getElementById('titleText');
+        const canvas = document.getElementById('eqCanvas');
+        const ctx = canvas.getContext('2d');
+        const starfield = document.querySelector('.starfield');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        const source = audioCtx.createMediaElementSource(audioPlayer);
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+
+        function explosionEffect() {
+            let particles = [];
+            for (let i = 0; i < 100; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    radius: Math.random() * 5 + 1,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    velocityX: (Math.random() - 0.5) * 10,
+                    velocityY: (Math.random() - 0.5) * 10
+                });
+            }
+
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach((p, index) => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+                    p.x += p.velocityX;
+                    p.y += p.velocityY;
+                    p.radius *= 0.95;
+                    if (p.radius < 0.1) particles.splice(index, 1);
+                });
+                if (particles.length > 0) requestAnimationFrame(animateParticles);
+            }
+            animateParticles();
+        }
+
+        function crazyVisuals() {
+            requestAnimationFrame(crazyVisuals);
+            analyser.getByteFrequencyData(dataArray);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < bufferLength; i++) {
+                const val = dataArray[i];
+                const percent = val / 256;
+                const height = canvas.height * percent;
+                const offset = canvas.height - height - 1;
+                const barWidth = canvas.width / bufferLength;
+                ctx.fillStyle = `hsl(${Math.round(percent * 360)}, 100%, 50%)`;
+                ctx.fillRect(i * barWidth, offset, barWidth, height);
+            }
+        }
+
+        function triggerEffects() {
+            if (audioPlayer.paused) {
+                audioCtx.resume();
+                audioPlayer.play();
+                document.body.style.animation = "backgroundPulse 10s infinite alternate";
+                starfield.style.animation = "starfield 30s linear infinite";
+                whaleContainer.style.transform = "translateX(-50%) scale(1.5) rotate(720deg)";
+                titleText.style.transform = "scale(1.5) rotate(-10deg)";
+                explosionEffect();
+                crazyVisuals();
+            } else {
+                audioPlayer.pause();
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                whaleContainer.style.transform = "translateX(-50%) scale(1)";
+                titleText.style.transform = "scale(1)";
+                starfield.style.animation = "none";
+            }
+        }
+
+        audioPlayer.addEventListener('ended', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.body.style.animation = "none";
+            whaleContainer.style.transform = "translateX(-50%) scale(1)";
+            titleText.style.transform = "scale(1)";
+            starfield.style.animation = "none";
+        });
+    </script>
+</body>
+</html>
+<!-- partial -->
+  
+</body>
+</html>
